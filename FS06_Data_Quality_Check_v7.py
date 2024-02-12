@@ -1,9 +1,10 @@
 import tkinter as tk
-from tkinter import filedialog, Label, Button
+from tkinter import filedialog, Label, Button, messagebox
 import os
 import pandas as pd
 import numpy as np
 import time
+import xlsxwriter
 
 class DataQualityChecker(tk.Tk):
     def __init__(self, parent):
@@ -85,6 +86,7 @@ class DataQualityChecker(tk.Tk):
         label = Label(self, text=text, font=("Calibri", font_size, font_style), fg=color, bg=self.bg_color)
         return label
 
+
     
     def select_dpl_file(self):
         self.dpl_lookup_path = filedialog.askopenfilename(title="Select the DPLAPT_Lookup File", filetypes=[("Excel Files", "*.xlsx"), ("All Files", "*.*")])
@@ -141,6 +143,8 @@ class DataQualityChecker(tk.Tk):
         parts = filename.split('_')
         second_text = parts[2]
         df['File System'] = second_text
+        df['Account Code'] = df[df.columns[10]].astype(str)
+        df['Event Code'] = df[df.columns[9]].astype(str)
 
         df['composite_key_data'] = df['File System'].astype(str) + df[df.columns[10]].astype(str) + df[df.columns[9]].astype(str)
         dpl['composite_key_dpl'] = dpl['LK_MATCH_KEY3'].astype(str) + dpl['LK_MATCH_KEY4'].astype(str) + dpl['LK_MATCH_KEY2'].astype(str)
@@ -148,8 +152,16 @@ class DataQualityChecker(tk.Tk):
         # Merge using the new composite key
         merged_df = pd.merge(df, dpl['composite_key_dpl'], left_on= 'composite_key_data', right_on= 'composite_key_dpl', how='left')
 
-        missing_key = merged_df['composite_key_dpl'].isnull()
+        merged_df['File Name'] = filename
+
+        # Drop duplicates based on the original column in df
+
+
+        missing_key = merged_df[merged_df['composite_key_dpl'].isnull()]
+        missing_key = missing_key.drop_duplicates(subset='composite_key_data')       
         missing_key_count = len(missing_key)
+        
+        missing_key.drop(missing_key.columns[13:41], axis=1, inplace=True)
 
         return missing_key, missing_key_count  
   
@@ -437,6 +449,8 @@ class DataQualityChecker(tk.Tk):
             df02.rename(columns={key_col_df02: key_col_df02 + ' for check'}, inplace=True)
             key_col_df02 = key_col_df02 + ' for check'
 
+        df02 = df02.drop_duplicates(subset=[key_col_df02], keep='last').reset_index(drop=True)
+
         new_df2[key_col_df] = new_df2[key_col_df].astype(str)
         df02[key_col_df02] = df02[key_col_df02].astype(str)
 
@@ -583,6 +597,16 @@ class DataQualityChecker(tk.Tk):
 
 
         # Write All Data Quality Check sheet
+        def show_popup():
+            # Create a new root window
+            root = tk.Tk()
+            # Hide the root window
+            root.withdraw()
+            # Show the message box
+            messagebox.showinfo("Process Finished", "Report generated: DataQualityCheck_Report.xlsx")
+            # Destroy the root window
+            root.destroy()
+
         df_results = pd.DataFrame(results_all_check, columns=["File", "Status"])
         df_results.index += 1
         df_results.to_excel(writer, sheet_name='All Data Quality Check', index_label="No")
@@ -591,11 +615,13 @@ class DataQualityChecker(tk.Tk):
         df_errors = pd.DataFrame(errors_all, columns=["File", "Status", "Error Data"])
         df_errors.index += 1
         df_errors.to_excel(writer, sheet_name='Errors', index_label="No")
-        
+
         print("All checks complete!")
 
-        writer.save()
+        # writer.save()
+        writer.close()
         print("Report generated: DataQualityCheck_Report.xlsx")
+        show_popup()
 
 
 if __name__ == '__main__':
