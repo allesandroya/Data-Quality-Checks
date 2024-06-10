@@ -206,31 +206,33 @@ class DataQualityChecker(tk.Tk):
     
     def date_check(self, df, date_from_filename):
         print("Running event date & CF date check...")
-        df['Cash Flow Date1'] = pd.to_datetime(df.iloc[:, 12], format='%Y/%m/%d', errors='coerce')
-        df['Event Date1'] = pd.to_datetime(df.iloc[:, 11], format='%Y/%m/%d', errors='coerce')            
+
+        new_df = df.copy()
+        new_df['Cash Flow Date1'] = pd.to_datetime(new_df.iloc[:, 12], format='%Y/%m/%d', errors='coerce')
+        new_df['Event Date1'] = pd.to_datetime(new_df.iloc[:, 11], format='%Y/%m/%d', errors='coerce')            
 
         # Extract the day, month, and year
-        df['day'] = df['Cash Flow Date1'].dt.day
-        df['month'] = df['Cash Flow Date1'].dt.month
-        df['year'] = df['Cash Flow Date1'].dt.year
+        new_df['day'] = new_df['Cash Flow Date1'].dt.day
+        new_df['month'] = new_df['Cash Flow Date1'].dt.month
+        new_df['year'] = new_df['Cash Flow Date1'].dt.year
 
-        df['day2'] = df['Event Date1'].dt.day
-        df['month2'] = df['Event Date1'].dt.month
-        df['year2'] = df['Event Date1'].dt.year
+        new_df['day2'] = new_df['Event Date1'].dt.day
+        new_df['month2'] = new_df['Event Date1'].dt.month
+        new_df['year2'] = new_df['Event Date1'].dt.year
 
         year, month, day = int(date_from_filename[:4]), int(date_from_filename[4:6]), int(date_from_filename[6:])
 
-        cf_below_year = df['year'] < year
-        ed_below_year = df['year2'] < year
-        cf_above_filename = (df['year'] > year) | ((df['year'] == year) & ((df['month'] > month) | ((df['month'] == month) & (df['day'] > day))))
-        ed_above_filename = (df['year2'] > year) | ((df['year2'] == year) & ((df['month2'] > month) | ((df['month2'] == month) & (df['day2'] > day))))
+        cf_below_year = new_df['year'] < year
+        ed_below_year = new_df['year2'] < year
+        cf_above_filename = (new_df['year'] > year) | ((new_df['year'] == year) & ((new_df['month'] > month) | ((new_df['month'] == month) & (new_df['day'] > day))))
+        ed_above_filename = (new_df['year2'] > year) | ((new_df['year2'] == year) & ((new_df['month2'] > month) | ((new_df['month2'] == month) & (new_df['day2'] > day))))
         
         both_below_year = cf_below_year & ed_below_year
         both_above_filename = cf_above_filename & ed_above_filename        
-        mask3 = cf_below_year & (df['year2'] == year)
+        mask3 = cf_below_year & (new_df['year2'] == year)
         
-        countFalse = both_below_year.sum() + both_above_filename.sum() + mask3.sum()
-        return countFalse
+        date_errors = both_below_year.sum() + both_above_filename.sum() + mask3.sum()
+        return date_errors
     
     def blanks_check(self, df, filename):
         if not hasattr(self, 'directory_path') or not self.directory_path:
@@ -245,19 +247,20 @@ class DataQualityChecker(tk.Tk):
         # coa = coa.drop_duplicates(subset='Account Code')
         # print(coa.shape)
         merged_data = pd.DataFrame()
-        grouped_df2 = self.grouped_df
-        
-        grouped_df2[grouped_df2.columns[0]] = grouped_df2[grouped_df2.columns[0]].astype(str)
-        grouped_df2[grouped_df2.columns[6]] = grouped_df2[grouped_df2.columns[6]].astype(str)
+        new_df = df.copy()
+        # grouped_df2 = self.grouped_df
+        new_df[new_df.columns[1]] = new_df[new_df.columns[1]].astype(str)
+        new_df[new_df.columns[10]] = new_df[new_df.columns[10]].astype(str) 
         
         # Filter rows where the column at index 1 (i.e., 'Policy Number') is either NaN or blank
-        df_filtered = grouped_df2[(grouped_df2.iloc[:, 0].isna()) | (grouped_df2.iloc[:, 0] == 'NULL')]
-
-
+        # new_df[new_df.columns[1]] = new_df[new_df.columns[1]].fillna("NULL")
+        df_filtered = new_df[(new_df.iloc[:, 1].isna()) | (new_df.iloc[:, 1] == 'NULL')]
+        
         if not df_filtered.empty:
 
-            merged_data = pd.merge(df_filtered, coa['Account Code'], left_on=df_filtered.columns[6], right_on='Account Code', how = 'inner')
+            merged_data = pd.merge(df_filtered, coa['Account Code'], left_on=df_filtered.columns[10], right_on='Account Code', how = 'inner')
 #             merged_data.drop(merged_data.columns[13:41], axis=1, inplace=True)
+            merged_data.drop(merged_data.columns[13:31], axis=1, inplace=True)
             merged_data.drop_duplicates(inplace=True)
             merged_data['File Name'] = filename
 
@@ -616,12 +619,18 @@ class DataQualityChecker(tk.Tk):
             key_col_df = new_df3.columns[0]
             key_col_fs10 = fs10.columns[0]
 
+            key_col_df02 = df02copy.columns[0]     
+            
+            if not key_col_df02.endswith('for check'):
+                df02copy.rename(columns={key_col_df02: key_col_df02 + ' for check'}, inplace=True)
+                key_col_df02 = key_col_df02 + ' for check'                    
+
             if not key_col_fs10.endswith('FS10'):
                 fs10.rename(columns={key_col_fs10: key_col_fs10 + ' FS10'}, inplace=True)
                 key_col_fs10 = key_col_fs10 + ' FS10'
 
             new_df3['File Name'] = filename       
-            new_df3['composite_key_data'] = new_df3['File System'].astype(str) + new_df3[new_df3.columns[10]].astype(str) + new_df3[new_df3.columns[9]].astype(str)
+            new_df3['composite_key_data'] = new_df3['File System'].astype(str) + new_df3[new_df3.columns[6]].astype(str) + new_df3[new_df3.columns[5]].astype(str)
 
             new_df3[key_col_df] = new_df3[key_col_df].astype(str)
             fs10[key_col_fs10] = fs10[key_col_fs10].astype(str)
@@ -635,7 +644,8 @@ class DataQualityChecker(tk.Tk):
             missing_fs0610 = missing_fs0610[~missing_fs0610[key_col_df].isin(['NULL', ''])]
 
             missing_fs0610 = missing_fs0610[missing_fs0610['Cash Flow Type'] != 'NA']
-            missing_fs0610.drop(missing_fs0610.columns[13:41], axis=1, inplace=True)
+            missing_fs0610.drop(missing_fs0610.columns[14:17], axis=1, inplace=True)
+  
 
             missing_fs0610 = pd.merge(missing_fs0610, df02copy[[df02copy.columns[0], df02copy.columns[18]]], left_on=key_col_df, right_on=df02copy.columns[0], how='left')
             # missing_fs0610.drop(missing_fs0610[['concat', 'composite_key_data']], axis=1, inplace=True)
@@ -705,15 +715,7 @@ class DataQualityChecker(tk.Tk):
             ascending=[True, False, False, False, True] 
         )
         df02copy = df02copy.drop_duplicates(subset=df02.columns[0]).reset_index(drop=True)    
-        key_col_df02 = df02copy.colummns[0]
 
-        if not df02.colummns[0].endswith('for check'):
-            df02.rename(columns={df02.colummns[0]: df02.colummns[0] + ' for check'}, inplace=True)
-            df02.colummns[0] = df02.colummns[0] + ' for check'        
-        
-        if not df02copy.colummns[0].endswith('for check'):
-            df02copy.rename(columns={df02copy.colummns[0]: df02copy.colummns[0] + ' for check'}, inplace=True)
-            df02copy.colummns[0] = df02copy.colummns[0] + ' for check'        
 
         # Drop duplicates keeping the last entry and reset index
         # df02 = df02.drop_duplicates(subset=header[0], keep='last').reset_index(drop=True)
@@ -807,6 +809,7 @@ class DataQualityChecker(tk.Tk):
 
             if self.date_error_var.get():
                 date_errors = self.date_check(df, filename.split('_')[4])
+                print(date_errors)
 
             if self.proposal_error_var.get():
                 proposal_error_count, proposal_errors = self.proposal_check(df, df02, filename)
@@ -826,7 +829,6 @@ class DataQualityChecker(tk.Tk):
             df = self.merge_with_dpl(df)    
 
             if self.blank_policy_number_var.get():
-                df = self.merge_with_dpl(df)
                 blanks_count, merged_data = self.blanks_check(df, filename)
                 if not merged_data.empty:
                     all_errors['Blank Policy Number'].append(merged_data)
@@ -870,6 +872,8 @@ class DataQualityChecker(tk.Tk):
 
             if status == "Failed":
                 error_details_list = []
+                if self.date_error_var.get():
+                    error_details_list.append(f"Date Errors: {date_errors}")
                 if self.proposal_error_var.get():
                     error_details_list.append(f"Proposal Error: {proposal_error_count}")
                 if self.missing_policy_var.get():
