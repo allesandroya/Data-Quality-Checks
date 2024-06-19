@@ -318,7 +318,7 @@ class DataQualityChecker(tk.Tk):
         missing_key = missing_key.drop_duplicates(subset='composite_key_data')       
         missing_key_count = len(missing_key)
         
-        missing_key.drop(missing_key.columns[13:41], axis=1, inplace=True)
+        missing_key.drop(missing_key.columns[13:32], axis=1, inplace=True)
 
         return missing_key, missing_key_count
     
@@ -647,7 +647,7 @@ class DataQualityChecker(tk.Tk):
             missing_fs0610.drop(missing_fs0610.columns[14:17], axis=1, inplace=True)
   
 
-            missing_fs0610 = pd.merge(missing_fs0610, df02copy[[df02copy.columns[0], df02copy.columns[18]]], left_on=key_col_df, right_on=df02copy.columns[0], how='left')
+            missing_fs0610 = pd.merge(missing_fs0610, df02copy[[df02copy.columns[0], df02copy.columns[18], df02copy.columns[17], 'FS02 File Name']], left_on=key_col_df, right_on=df02copy.columns[0], how='left')
             # missing_fs0610.drop(missing_fs0610[['concat', 'composite_key_data']], axis=1, inplace=True)
             dpl2 = pd.read_excel(self.dpl_lookup_path, sheet_name='DPL_CONTRACT_STATUS_MAP', keep_default_na=False, na_values=[''])
             missing_fs0610 = pd.merge(missing_fs0610, dpl2[['LK_MATCH_KEY3', 'LK_LOOKUP_VALUE2']], left_on=df02copy.columns[18], right_on='LK_MATCH_KEY3', how='left')
