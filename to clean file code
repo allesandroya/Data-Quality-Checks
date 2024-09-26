@@ -1,0 +1,30 @@
+# Modify the cleaning function to remove any fully blank columns after adjusting the header
+def clean_and_remove_blank_columns(df):
+    # Find the first row that contains the correct headers, which is typically the first non-null row
+    header_row_idx = df.notna().any(axis=1).idxmax()
+
+    # Reassign the correct row as the new header
+    cleaned_df = df.iloc[header_row_idx:].reset_index(drop=True)
+    
+    # Set the first row as the new header
+    cleaned_df.columns = cleaned_df.iloc[0]
+    
+    # Remove the header row from the data
+    cleaned_df = cleaned_df.drop(0).reset_index(drop=True)
+    
+    # Remove any columns that are completely blank
+    cleaned_df = cleaned_df.dropna(axis=1, how='all')
+    
+    return cleaned_df
+
+# Apply the updated cleaning function to both sheets
+cleaned_sheet1_df = clean_and_remove_blank_columns(sheet1_df)
+cleaned_sheet2_df = clean_and_remove_blank_columns(sheet2_df)
+
+# Save the cleaned data back to a new Excel file
+cleaned_file_path_final = '/mnt/data/cleaned_tess_if_mpf_final.xlsx'
+with pd.ExcelWriter(cleaned_file_path_final, engine='xlsxwriter') as writer:
+    cleaned_sheet1_df.to_excel(writer, sheet_name='Sheet1', index=False)
+    cleaned_sheet2_df.to_excel(writer, sheet_name='Sheet2', index=False)
+
+cleaned_file_path_final
