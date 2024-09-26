@@ -1,4 +1,5 @@
-# Modify the cleaning function to remove any fully blank columns after adjusting the header
+import pandas as pd
+
 def clean_and_remove_blank_columns(df):
     # Find the first row that contains the correct headers, which is typically the first non-null row
     header_row_idx = df.notna().any(axis=1).idxmax()
@@ -17,14 +18,24 @@ def clean_and_remove_blank_columns(df):
     
     return cleaned_df
 
-# Apply the updated cleaning function to both sheets
-cleaned_sheet1_df = clean_and_remove_blank_columns(sheet1_df)
-cleaned_sheet2_df = clean_and_remove_blank_columns(sheet2_df)
+def clean_excel_file(input_file_path, output_file_path):
+    # Load the Excel file
+    excel_file = pd.ExcelFile(input_file_path)
 
-# Save the cleaned data back to a new Excel file
-cleaned_file_path_final = '/mnt/data/cleaned_tess_if_mpf_final.xlsx'
-with pd.ExcelWriter(cleaned_file_path_final, engine='xlsxwriter') as writer:
-    cleaned_sheet1_df.to_excel(writer, sheet_name='Sheet1', index=False)
-    cleaned_sheet2_df.to_excel(writer, sheet_name='Sheet2', index=False)
+    # Create an Excel writer to save the cleaned data
+    with pd.ExcelWriter(output_file_path, engine='xlsxwriter') as writer:
+        # Loop through each sheet in the Excel file
+        for sheet_name in excel_file.sheet_names:
+            # Load the sheet into a DataFrame
+            df = pd.read_excel(input_file_path, sheet_name=sheet_name)
+            
+            # Clean the data
+            cleaned_df = clean_and_remove_blank_columns(df)
+            
+            # Write the cleaned data to the output file, keeping the original sheet name
+            cleaned_df.to_excel(writer, sheet_name=sheet_name, index=False)
 
-cleaned_file_path_final
+# Example usage:
+input_file = '/path/to/your/input/file.xlsx'
+output_file = '/path/to/your/output/cleaned_file.xlsx'
+clean_excel_file(input_file, output_file)
