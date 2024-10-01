@@ -1,3 +1,5 @@
+#FS Data Quality Checker by Allesandro Yudo | IFRS17 Team
+
 import tkinter as tk
 from tkinter import filedialog, Label, Button
 import os
