@@ -1,3 +1,5 @@
+#Data Manager created by Allesandro Yudo | IFRS17 Team
+
 import os
 import shutil
 import tkinter as tk
