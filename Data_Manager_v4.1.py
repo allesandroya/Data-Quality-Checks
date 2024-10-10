@@ -349,12 +349,24 @@ class DataManager:
         
         if zip_option:  
             
-            base_path = self.directory      
+            base_path = self.directory  
             
+            # Create a new folder with " Zip" added to the original folder name
+            base_folder_name = os.path.basename(base_path)  # Get the base folder name
+            zip_folder_name = f'{base_folder_name} Zip'  # Append " Zip" to the folder name
+            zip_folder_path = os.path.join(base_path, zip_folder_name)  # Create the new folder path INSIDE the base_path
+
+            # Check if the folder exists, if not, create it
+            if not os.path.exists(zip_folder_path):
+                os.makedirs(zip_folder_path)
+                print(f"Created folder: {zip_folder_path}")
+            else:
+                print(f"Folder already exists: {zip_folder_path}")
+
             for filename in os.listdir(base_path):
                 if filename.endswith('.csv'):
                     base_name = os.path.splitext(filename)[0]  # Get the base name without extension
-                    zip_name = os.path.join(base_path, f'{base_name}.zip')  # Create the zip file name
+                    zip_name = os.path.join(zip_folder_path, f'{base_name}.zip')  # Create the zip file name inside the new folder
                     with zipfile.ZipFile(zip_name, 'w') as zipf:
                         csv_file = os.path.join(base_path, filename)
                         hdr_file = os.path.join(base_path, f'{base_name}.hdr')
@@ -362,9 +374,11 @@ class DataManager:
                         zipf.write(hdr_file, arcname=os.path.basename(hdr_file))
                         print(f'Zipped file: {filename}')
             print("Done!")
-            messagebox.showinfo("Info", f"Done Processing. All .csv or .hdr files zipped")               
+            messagebox.showinfo("Info", f"Done Processing. All .csv or .hdr files zipped into the '{zip_folder_name}' folder.")               
         else:
             return
+
+
         
     def break_conven(self):
         if not self.directory:
